@@ -59,6 +59,8 @@ mod map_with;
 pub use self::map_with::MapWith;
 mod zip;
 pub use self::zip::Zip;
+mod intersperse;
+pub use self::intersperse::Intersperse;
 mod noop;
 mod rev;
 pub use self::rev::Rev;
@@ -231,6 +233,37 @@ pub trait ParallelIterator: Sized + Send {
         where Self::Item: IntoParallelIterator
     {
         flatten::new(self)
+    }
+
+    /// An adapter that inserts a particular value in between each element in the
+    /// base iterator.
+    ///
+    /// Examples:
+    ///
+    /// ```
+    /// use rayon::prelude::*;
+    /// let x: Vec<i32> = vec![1,2,3];
+    /// let y: Vec<i32> = x.into_par_iter().intersperse(9).collect();
+    /// assert_eq!(y, vec![1,9,2,9,3]);
+    ///
+    /// // TODO move below here into other tests
+    /// let x: Vec<String> =
+    ///     vec!["red".to_owned(), "green".to_owned(), "blue".to_owned()];
+    /// let y: String = x
+    ///     .into_par_iter()
+    ///     .intersperse(", ".to_owned())
+    ///     .reduce(|| String::new(), |s1, s2| s1 + &s2);
+    /// assert_eq!(y, "red, green, blue");
+    ///
+    /// let x: Vec<i32> = vec![5, 6, 7];
+    /// let y: i32 = x.into_par_iter().intersperse(1).sum();
+    /// assert_eq!(y, 20);
+    ///
+    /// ```
+    fn intersperse(self, interspersed: Self::Item) -> Intersperse<Self>
+        where Self::Item: Send + Clone
+    {
+        intersperse::new(self, interspersed)
     }
 
     /// Reduces the items in the iterator into one item using `op`.
